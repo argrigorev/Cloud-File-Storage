@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: admin
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      APP_STORAGE_PATH: /app/uploads
+      SERVER_SERVLET_CONTEXT_PATH: /cloud
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  front:
+    image: node:19.9.0
+    working_dir: /app
+    volumes:
+      - "C:/Users/user/OneDrive/Рабочий стол/studying/my own/coding/Java/netology/diploma/netology-diplom-frontend:/app"
+      - /app/node_modules
+    environment:
+      VUE_APP_BASE_URL: "http://localhost:8080/cloud"
+    command: sh -c "npm install && npm run serve -- --port 8081 --host 0.0.0.0"
+    ports:
+      - "8081:8081"
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
+  uploads:
