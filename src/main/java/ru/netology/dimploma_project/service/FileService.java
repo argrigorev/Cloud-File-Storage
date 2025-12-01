@@ -1,6 +1,6 @@
 package ru.netology.dimploma_project.service;
 
-import ru.netology.dimploma_project.dto.FileDto;
+import ru.netology.dimploma_project.model.FileEntity;
 import ru.netology.dimploma_project.model.User;
 
 import java.util.List;
@@ -14,5 +14,5 @@ public interface FileService {
 
     void renameFile(String oldFilename, String newFilename, User owner);
 
-    List<FileDto> getAllFiles(User owner);
+    List<FileEntity> getAllFiles(User owner);
 }

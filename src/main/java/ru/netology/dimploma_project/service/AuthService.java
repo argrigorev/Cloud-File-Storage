@@ -1,5 +1,7 @@
 package ru.netology.dimploma_project.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import ru.netology.dimploma_project.model.Token;
 import ru.netology.dimploma_project.model.User;
@@ -20,6 +22,8 @@ public class AuthService {
     private static final SecureRandom secureRandom = new SecureRandom();
     private static final Base64.Encoder base64Encoder = Base64.getUrlEncoder();
 
+    private static final Logger logger = LogManager.getLogger(AuthService.class);
+
     private static final long TOKEN_TTL_DAYS = 1;
 
     public AuthService(TokenRepository tokenRepository, UserRepository userRepository) {
@@ -28,14 +32,20 @@ public class AuthService {
     }
 
     public Token login(String username, String password) {
+        logger.info("Попытка входа пользователя '{}'", username);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Wrong username."));
+                .orElseThrow(() -> {
+                    logger.warn("Неудачный вход: неправильный username '{}'", username);
+                    return new IllegalArgumentException("Wrong username.");
+                });
 
         if (!user.getPassword().equals(password)) {
+            logger.warn("Неудачный вход: неправильный пароль пользователя '{}'", username);
             throw new IllegalArgumentException("Wrong password.");
         }
 
         String tokenValue = generateNewToken();
+        logger.info("Пользователь '{}' успешно вошёл, создан токен", username);
 
         Token token = new Token();
         token.setToken(tokenValue);
@@ -55,9 +65,16 @@ public class AuthService {
     }
 
     public void logout(String tokenValue) {
-        if (tokenValue == null || tokenValue.isBlank()) return;
+        logger.info("Попытка выхода по токену");
+
+        if (tokenValue == null || tokenValue.isBlank()) {
+            logger.warn("Токен отсутствует, выход невозможен");
+            return;
+        }
+
         String normalized = normalizeToken(tokenValue);
         tokenRepository.findByToken(normalized).ifPresent(t -> {
+            logger.info("Установление статуса revoked для токена");
             t.setRevoked(true);
             tokenRepository.save(t);
         });
@@ -65,6 +82,7 @@ public class AuthService {
 
     public Optional<User> findUserByToken(String tokenValue) {
         if (tokenValue == null || tokenValue.isBlank()) {
+            logger.warn("Токен пустой");
             return Optional.empty();
         }
 
